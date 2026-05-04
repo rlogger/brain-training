@@ -387,6 +387,7 @@ window.BT.NBackUI = {
       newLevel,
     };
     window.BT.Storage.addSession(record);
+    if (window.BT.Streaks) window.BT.Streaks.refresh();
 
     this._showResults(scores, newLevel);
 

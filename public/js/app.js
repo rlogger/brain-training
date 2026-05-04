@@ -4,17 +4,40 @@ window.BT.App = {
   _currentView: 'nback',
 
   init() {
+    this._initTheme();
     window.BT.Audio.init();
     window.BT.NBackUI.init();
     window.BT.CWMUI.init();
     window.BT.Stats.init();
     window.BT.Onboarding.init();
+    if (window.BT.Streaks) window.BT.Streaks.refresh();
 
     this._bindNav();
     this._bindGlobalKeys();
 
     const lastView = window.BT.Storage.get('bt_last_view', 'nback');
     this.switchView(lastView);
+  },
+
+  _initTheme() {
+    const saved = window.BT.Storage.get('bt_dark_mode', null);
+    if (saved) document.documentElement.setAttribute('data-theme', saved);
+
+    const toggle = document.getElementById('dark-mode-toggle');
+    const icon = document.getElementById('dark-mode-icon');
+    const update = () => {
+      const theme = document.documentElement.getAttribute('data-theme');
+      icon.textContent = theme === 'dark' ? 'Light' : 'Dark';
+    };
+    update();
+
+    toggle.addEventListener('click', () => {
+      const current = document.documentElement.getAttribute('data-theme');
+      const next = current === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      window.BT.Storage.set('bt_dark_mode', next);
+      update();
+    });
   },
 
   switchView(viewId) {
@@ -108,5 +131,5 @@ window.BT.App = {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
-  window.BT.App.init();
+  window.BT.Storage.init().then(() => window.BT.App.init()).catch(() => window.BT.App.init());
 });

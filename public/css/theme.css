@@ -64,7 +64,7 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --bg:       #0a0a0a;
     --fg:       #ffffff;
     --gray-low: #a1a1aa;
@@ -78,6 +78,21 @@
     --error:      #f87171;
     --error-bg:   #450a0a;
   }
+}
+
+:root[data-theme="dark"] {
+  --bg:       #0a0a0a;
+  --fg:       #ffffff;
+  --gray-low: #a1a1aa;
+  --gray-mid: #d4d4d8;
+  --accent:   #e4e4e7;
+  --border:   #27272a;
+  --surface:  #18181b;
+
+  --success:    #4ade80;
+  --success-bg: #052e16;
+  --error:      #f87171;
+  --error-bg:   #450a0a;
 }
 
 html { font-size: 16px; scroll-behavior: smooth; }
@@ -192,6 +207,26 @@ h1, h2, h3, h4 { font-weight: 700; line-height: var(--leading-tight); }
   text-transform: uppercase;
   color: var(--gray-low);
   font-weight: 600;
+}
+
+.sidebar-toggle {
+  appearance: none;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--gray-mid);
+  font-family: var(--font-sans);
+  font-size: .625rem;
+  font-weight: 600;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  padding: .375rem .75rem;
+  cursor: pointer;
+  transition: color var(--dur-base) var(--ease), border-color var(--dur-base) var(--ease);
+}
+
+.sidebar-toggle:hover {
+  color: var(--fg);
+  border-color: var(--fg);
 }
 
 /* --- Main content area --- */

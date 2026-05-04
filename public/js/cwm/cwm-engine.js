@@ -124,9 +124,16 @@ window.BT.CWMEngine = {
     const gridSize = 16;
 
     for (let r = 0; r < level; r++) {
+      const roundType = type === 'combined'
+        ? (Math.random() < 0.5 ? 'spatial' : 'verbal')
+        : type;
+      const rememberType = type === 'combined'
+        ? (roundType === 'spatial' ? 'verbal' : 'spatial')
+        : type;
+
       const decisions = [];
       for (let d = 0; d < decisionsPerRound; d++) {
-        if (type === 'spatial') {
+        if (roundType === 'spatial') {
           const sym = Math.random() < 0.5;
           decisions.push({
             figure: sym ? generateSymmetricFigure() : generateAsymmetricFigure(),
@@ -143,19 +150,20 @@ window.BT.CWMEngine = {
       }
 
       let rememberItem;
-      if (type === 'spatial') {
+      if (rememberType === 'spatial') {
         let pos;
         do {
           pos = Math.floor(Math.random() * gridSize);
         } while (usedPositions.includes(pos) && usedPositions.length < gridSize);
         usedPositions.push(pos);
-        rememberItem = pos;
+        rememberItem = type === 'combined' ? { type: 'spatial', value: pos } : pos;
       } else {
-        rememberItem = availableLetters[r % availableLetters.length];
-        usedLetters.push(rememberItem);
+        const letter = availableLetters[r % availableLetters.length];
+        usedLetters.push(letter);
+        rememberItem = type === 'combined' ? { type: 'verbal', value: letter } : letter;
       }
 
-      rounds.push({ decisions, rememberItem });
+      rounds.push({ decisions, rememberItem, roundType, rememberType });
     }
 
     return rounds;
@@ -175,7 +183,10 @@ window.BT.CWMEngine = {
     let correctRecalls = 0;
     const expectedItems = rounds.map(r => r.rememberItem);
     for (let i = 0; i < Math.min(recallResponses.length, expectedItems.length); i++) {
-      if (recallResponses[i] === expectedItems[i]) correctRecalls++;
+      const expected = expectedItems[i];
+      const actual = recallResponses[i];
+      const expectedVal = expected && typeof expected === 'object' ? expected.value : expected;
+      if (actual === expectedVal) correctRecalls++;
     }
     const recallAccuracy = level > 0 ? correctRecalls / level : 0;
 

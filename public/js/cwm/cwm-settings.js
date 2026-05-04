@@ -14,13 +14,17 @@ window.BT.CWMSettings = {
   renderPanel(container, settings, onChange) {
     const totalDecisions = settings.level * settings.decisionsPerRound;
     const estimatedTime = settings.level * (settings.decisionsPerRound * (settings.trialTime / 1000 + 1) + 2) + 10;
+    const mins = Math.floor(estimatedTime / 60);
+    const secs = Math.round(estimatedTime % 60);
+    const durStr = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
 
     container.innerHTML = `
       <div class="panel-section">
-        <div class="panel-section-title">This Set</div>
-        <div class="panel-row"><span class="label">Items to recall</span><span class="value" id="cwm-info-level">${settings.level}</span></div>
-        <div class="panel-row"><span class="label">Decisions</span><span class="value">${totalDecisions}</span></div>
-        <div class="panel-row"><span class="label">Total time</span><span class="value">${Math.round(estimatedTime)} s</span></div>
+        <div class="panel-section-title">Next Set</div>
+        <div class="panel-row"><span class="label">Level</span><span class="value">${settings.level}</span></div>
+        <div class="panel-row"><span class="label">Number of trials</span><span class="value">${totalDecisions}</span></div>
+        <div class="panel-row"><span class="label">Trial time</span><span class="value">${settings.trialTime / 1000}s</span></div>
+        <div class="panel-row"><span class="label">Duration</span><span class="value">~${durStr}</span></div>
       </div>
       <div class="panel-section">
         <div class="panel-section-title">Today</div>

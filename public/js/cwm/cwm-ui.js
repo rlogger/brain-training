@@ -9,6 +9,7 @@ window.BT.CWMUI = {
   _decisionResponses: [],
   _recallResponses: [],
   _rememberItems: [],
+  _recallStep: 0,
   _timer: null,
   _running: false,
 
@@ -18,27 +19,50 @@ window.BT.CWMUI = {
     this._bindKeys();
   },
 
+  _getDisplayType() {
+    if (this._settings.type !== 'combined') return this._settings.type;
+    return this._rounds[this._currentRound].roundType;
+  },
+
+  _getRememberType() {
+    if (this._settings.type !== 'combined') return this._settings.type;
+    return this._rounds[this._currentRound].rememberType;
+  },
+
+  _getRememberValue(item) {
+    return item && typeof item === 'object' ? item.value : item;
+  },
+
   _renderView() {
     const view = document.getElementById('view-cwm');
     const arena = view.querySelector('.exercise-arena');
     const panel = view.querySelector('.exercise-panel');
+    const s = this._settings;
+    const sel = (v) => s.type === v ? 'selected' : '';
 
     arena.innerHTML = `
-      <div class="cwm-hero">
-        <div class="cwm-hero-eyebrow">Items to recall</div>
-        <div class="cwm-hero-row">
-          <button class="cwm-hero-step" id="cwm-level-down" aria-label="Decrease items">−</button>
-          <div class="cwm-hero-numeral" id="cwm-hero-level">${this._settings.level}</div>
-          <button class="cwm-hero-step" id="cwm-level-up" aria-label="Increase items">+</button>
-        </div>
-        <div class="cwm-hero-type">
-          <button class="cwm-type-pill ${this._settings.type === 'spatial' ? 'active' : ''}" data-type="spatial">Spatial</button>
-          <span class="cwm-type-divider">·</span>
-          <button class="cwm-type-pill ${this._settings.type === 'verbal' ? 'active' : ''}" data-type="verbal">Verbal</button>
+      <div class="cwm-setup">
+        <div class="cwm-setup-row">
+          <div class="cwm-setup-field">
+            <label class="eyebrow">Type</label>
+            <select class="input-field" id="cwm-type-select">
+              <option value="verbal" ${sel('verbal')}>Verbal</option>
+              <option value="spatial" ${sel('spatial')}>Spatial</option>
+              <option value="combined" ${sel('combined')}>Combined</option>
+            </select>
+          </div>
+          <div class="cwm-setup-field">
+            <label class="eyebrow">Level</label>
+            <select class="input-field" id="cwm-level-select">
+              ${Array.from({length: 14}, (_, i) => i + 2).map(n =>
+                `<option value="${n}" ${n === s.level ? 'selected' : ''}>${n}</option>`
+              ).join('')}
+            </select>
+          </div>
         </div>
       </div>
       <div class="cwm-start-area" id="cwm-start-area">
-        <button class="btn btn-primary btn-lg" id="cwm-start-btn">Begin set</button>
+        <button class="btn btn-primary btn-lg" id="cwm-start-btn">Start</button>
         <div class="cwm-start-hint">Press <span class="kbd">Space</span> to start · <span class="kbd">?</span> for help</div>
       </div>
       <div id="cwm-arena-content" style="display:none;flex-direction:column;align-items:center;width:100%">
@@ -51,64 +75,53 @@ window.BT.CWMUI = {
           <div class="cwm-feedback-flash" id="cwm-feedback"></div>
         </div>
         <div class="cwm-decision-buttons" id="cwm-decision-btns" style="display:none">
-          <button class="btn btn-secondary" id="cwm-yes-btn">Yes <span class="kbd">${this._settings.keyYes}</span></button>
-          <button class="btn btn-secondary" id="cwm-no-btn">No <span class="kbd">${this._settings.keyNo}</span></button>
+          <button class="btn btn-secondary" id="cwm-yes-btn">Yes <span class="kbd">${s.keyYes}</span></button>
+          <button class="btn btn-secondary" id="cwm-no-btn">No <span class="kbd">${s.keyNo}</span></button>
         </div>
       </div>
       <div id="cwm-results" style="display:none"></div>
     `;
 
-    window.BT.CWMSettings.renderPanel(panel, this._settings, (s) => {
-      this._settings = s;
-      this._updateHeader();
+    window.BT.CWMSettings.renderPanel(panel, this._settings, (updated) => {
+      this._settings = updated;
+      this._syncSelects();
     });
 
     this._bindUIEvents();
-    this._updateHeader();
+    this._syncSelects();
   },
 
-  _updateHeader() {
-    const view = document.getElementById('view-cwm');
-    const h1 = view.querySelector('.exercise-header h1');
-    if (h1) h1.textContent = 'Complex Working Memory';
-    const heroLevel = document.getElementById('cwm-hero-level');
-    if (heroLevel) heroLevel.textContent = this._settings.level;
-    document.querySelectorAll('.cwm-type-pill').forEach(b => {
-      b.classList.toggle('active', b.dataset.type === this._settings.type);
-    });
+  _syncSelects() {
+    const typeEl = document.getElementById('cwm-type-select');
+    const levelEl = document.getElementById('cwm-level-select');
+    if (typeEl) typeEl.value = this._settings.type;
+    if (levelEl) levelEl.value = this._settings.level;
     window.BT.CWMSettings.renderPanel(
       document.querySelector('#view-cwm .exercise-panel'),
       this._settings,
-      (s) => { this._settings = s; this._updateHeader(); }
+      (s) => { this._settings = s; this._syncSelects(); }
     );
   },
 
   _bindUIEvents() {
     document.getElementById('cwm-start-btn').addEventListener('click', () => this.startSession());
-    document.getElementById('cwm-level-up').addEventListener('click', () => this._stepLevel(1));
-    document.getElementById('cwm-level-down').addEventListener('click', () => this._stepLevel(-1));
 
-    document.querySelectorAll('.cwm-type-pill').forEach(btn => {
-      btn.addEventListener('click', () => {
-        if (this._running) return;
-        this._settings.type = btn.dataset.type;
-        window.BT.CWMSettings.save(this._settings);
-        document.querySelectorAll('.cwm-type-pill').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-      });
+    document.getElementById('cwm-type-select').addEventListener('change', (e) => {
+      if (this._running) return;
+      this._settings.type = e.target.value;
+      window.BT.CWMSettings.save(this._settings);
+      this._syncSelects();
+    });
+
+    document.getElementById('cwm-level-select').addEventListener('change', (e) => {
+      if (this._running) return;
+      this._settings.level = parseInt(e.target.value, 10);
+      window.BT.CWMSettings.save(this._settings);
+      this._syncSelects();
     });
 
     document.getElementById('cwm-yes-btn').addEventListener('click', () => this._handleDecision(true));
     document.getElementById('cwm-no-btn').addEventListener('click', () => this._handleDecision(false));
-  },
-
-  _stepLevel(delta) {
-    if (this._running) return;
-    const next = Math.max(2, Math.min(15, this._settings.level + delta));
-    if (next === this._settings.level) return;
-    this._settings.level = next;
-    window.BT.CWMSettings.save(this._settings);
-    this._updateHeader();
   },
 
   async startSession() {
@@ -119,6 +132,7 @@ window.BT.CWMUI = {
     this._rememberItems = [];
     this._currentRound = 0;
     this._currentDecision = 0;
+    this._recallStep = 0;
 
     this._rounds = window.BT.CWMEngine.generateSession(this._settings);
 
@@ -167,11 +181,11 @@ window.BT.CWMUI = {
     const decision = round.decisions[this._currentDecision];
     const display = document.getElementById('cwm-display-area');
     const btns = document.getElementById('cwm-decision-btns');
+    const displayType = this._getDisplayType();
 
     this._updatePhaseLabel(`Round ${this._currentRound + 1}/${this._settings.level} — Decision ${this._currentDecision + 1}/${this._settings.decisionsPerRound}`);
-    this._updateProgress();
 
-    if (this._settings.type === 'spatial') {
+    if (displayType === 'spatial') {
       display.innerHTML = `<canvas id="cwm-figure" class="cwm-figure-canvas" width="280" height="280"></canvas>`;
       this._drawFigure(document.getElementById('cwm-figure'), decision.figure);
     } else {
@@ -180,8 +194,8 @@ window.BT.CWMUI = {
 
     btns.style.display = 'flex';
     this._animateTrialBar(this._settings.trialTime);
-    document.getElementById('cwm-yes-btn').innerHTML = `${this._settings.type === 'spatial' ? 'Symmetric' : 'Correct'} <span class="kbd">${this._settings.keyYes}</span>`;
-    document.getElementById('cwm-no-btn').innerHTML = `${this._settings.type === 'spatial' ? 'Not Symmetric' : 'Incorrect'} <span class="kbd">${this._settings.keyNo}</span>`;
+    document.getElementById('cwm-yes-btn').innerHTML = `${displayType === 'spatial' ? 'Symmetric' : 'Correct'} <span class="kbd">${this._settings.keyYes}</span>`;
+    document.getElementById('cwm-no-btn').innerHTML = `${displayType === 'spatial' ? 'Not Symmetric' : 'Incorrect'} <span class="kbd">${this._settings.keyNo}</span>`;
 
     this._timer = setTimeout(() => {
       this._handleDecision(null);
@@ -195,7 +209,8 @@ window.BT.CWMUI = {
 
     const round = this._rounds[this._currentRound];
     const decision = round.decisions[this._currentDecision];
-    const expected = this._settings.type === 'spatial' ? decision.isSymmetric : decision.isCorrect;
+    const displayType = this._getDisplayType();
+    const expected = displayType === 'spatial' ? decision.isSymmetric : decision.isCorrect;
     const correct = answer === expected;
 
     this._decisionResponses.push({
@@ -243,16 +258,18 @@ window.BT.CWMUI = {
     this._phase = 'remember';
     const round = this._rounds[this._currentRound];
     const display = document.getElementById('cwm-display-area');
+    const rememberType = this._getRememberType();
+    const val = this._getRememberValue(round.rememberItem);
     document.getElementById('cwm-decision-btns').style.display = 'none';
 
     this._updatePhaseLabel(`Round ${this._currentRound + 1}/${this._settings.level} — <strong>Remember this!</strong>`);
 
-    if (this._settings.type === 'spatial') {
+    if (rememberType === 'spatial') {
       display.innerHTML = `<div class="cwm-recall-grid" id="cwm-remember-grid">${
-        Array(16).fill(0).map((_, i) => `<div class="cwm-recall-cell ${i === round.rememberItem ? 'highlighted' : ''}" data-cell="${i}"></div>`).join('')
+        Array(16).fill(0).map((_, i) => `<div class="cwm-recall-cell ${i === val ? 'highlighted' : ''}" data-cell="${i}"></div>`).join('')
       }</div>`;
     } else {
-      display.innerHTML = `<div class="cwm-letter-display">${round.rememberItem}</div>`;
+      display.innerHTML = `<div class="cwm-letter-display">${val}</div>`;
     }
 
     this._rememberItems.push(round.rememberItem);
@@ -270,65 +287,144 @@ window.BT.CWMUI = {
   _startRecall() {
     this._phase = 'recall';
     this._recallResponses = [];
+    this._recallStep = 0;
     const display = document.getElementById('cwm-display-area');
     document.getElementById('cwm-decision-btns').style.display = 'none';
 
-    this._updatePhaseLabel(`Recall — Select items in order (${this._settings.level} items)`);
+    if (this._settings.type === 'combined') {
+      this._renderCombinedRecallStep(display);
+    } else if (this._settings.type === 'spatial') {
+      this._renderSpatialRecall(display);
+    } else {
+      this._renderVerbalRecall(display);
+    }
+  },
 
-    if (this._settings.type === 'spatial') {
+  _renderSpatialRecall(display) {
+    this._updatePhaseLabel(`Recall — Select items in order (${this._settings.level} items)`);
+    display.innerHTML = `
+      <div style="display:flex;flex-direction:column;align-items:center;gap:16px">
+        <div class="cwm-recall-sequence" id="cwm-recall-seq">
+          ${Array(this._settings.level).fill(0).map(() => '<div class="cwm-recall-placeholder"></div>').join('')}
+        </div>
+        <div class="cwm-recall-grid" id="cwm-recall-grid">
+          ${Array(16).fill(0).map((_, i) => `<div class="cwm-recall-cell" data-cell="${i}">${i + 1}</div>`).join('')}
+        </div>
+        <div class="cwm-recall-controls">
+          <button class="btn btn-secondary btn-sm" id="cwm-undo-btn">Undo</button>
+          <button class="btn btn-primary" id="cwm-submit-btn">Submit</button>
+        </div>
+      </div>
+    `;
+    display.querySelectorAll('.cwm-recall-cell').forEach(cell => {
+      cell.addEventListener('click', () => {
+        if (this._recallResponses.length >= this._settings.level) return;
+        const idx = parseInt(cell.dataset.cell, 10);
+        this._recallResponses.push(idx);
+        cell.classList.add('selected');
+        this._updateRecallSequence();
+      });
+    });
+    document.getElementById('cwm-undo-btn').addEventListener('click', () => this._undoRecall());
+    document.getElementById('cwm-submit-btn').addEventListener('click', () => this._submitRecall());
+  },
+
+  _renderVerbalRecall(display) {
+    this._updatePhaseLabel(`Recall — Select items in order (${this._settings.level} items)`);
+    display.innerHTML = `
+      <div style="display:flex;flex-direction:column;align-items:center;gap:16px">
+        <div class="cwm-recall-sequence" id="cwm-recall-seq">
+          ${Array(this._settings.level).fill(0).map(() => '<div class="cwm-recall-placeholder"></div>').join('')}
+        </div>
+        <div class="cwm-letter-bank" id="cwm-letter-bank">
+          ${window.BT.CWM_LETTERS.map(l => `<button class="cwm-letter-btn" data-letter="${l}">${l}</button>`).join('')}
+        </div>
+        <div class="cwm-recall-controls">
+          <button class="btn btn-secondary btn-sm" id="cwm-undo-btn">Undo</button>
+          <button class="btn btn-primary" id="cwm-submit-btn">Submit</button>
+        </div>
+      </div>
+    `;
+    display.querySelectorAll('.cwm-letter-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (this._recallResponses.length >= this._settings.level) return;
+        this._recallResponses.push(btn.dataset.letter);
+        btn.classList.add('selected');
+        this._updateRecallSequence();
+      });
+    });
+    document.getElementById('cwm-undo-btn').addEventListener('click', () => this._undoRecall());
+    document.getElementById('cwm-submit-btn').addEventListener('click', () => this._submitRecall());
+  },
+
+  _renderCombinedRecallStep(display) {
+    const step = this._recallStep;
+    const total = this._settings.level;
+    if (step >= total) {
+      this._updatePhaseLabel(`Recall — All ${total} items selected`);
       display.innerHTML = `
         <div style="display:flex;flex-direction:column;align-items:center;gap:16px">
-          <div class="cwm-recall-sequence" id="cwm-recall-seq">
-            ${Array(this._settings.level).fill(0).map(() => '<div class="cwm-recall-placeholder"></div>').join('')}
+          <div class="cwm-recall-sequence" id="cwm-recall-seq"></div>
+          <div class="cwm-recall-controls">
+            <button class="btn btn-secondary btn-sm" id="cwm-undo-btn">Undo</button>
+            <button class="btn btn-primary" id="cwm-submit-btn">Submit</button>
           </div>
+        </div>
+      `;
+      this._updateRecallSequence();
+      document.getElementById('cwm-undo-btn').addEventListener('click', () => this._undoRecall());
+      document.getElementById('cwm-submit-btn').addEventListener('click', () => this._submitRecall());
+      return;
+    }
+
+    const round = this._rounds[step];
+    const rType = round.rememberType;
+    const typeLabel = rType === 'spatial' ? 'Grid position' : 'Letter';
+    this._updatePhaseLabel(`Recall — Item ${step + 1} of ${total} (${typeLabel})`);
+
+    if (rType === 'spatial') {
+      display.innerHTML = `
+        <div style="display:flex;flex-direction:column;align-items:center;gap:16px">
+          <div class="cwm-recall-sequence" id="cwm-recall-seq"></div>
           <div class="cwm-recall-grid" id="cwm-recall-grid">
             ${Array(16).fill(0).map((_, i) => `<div class="cwm-recall-cell" data-cell="${i}">${i + 1}</div>`).join('')}
           </div>
           <div class="cwm-recall-controls">
             <button class="btn btn-secondary btn-sm" id="cwm-undo-btn">Undo</button>
-            <button class="btn btn-primary" id="cwm-submit-btn">Submit</button>
           </div>
         </div>
       `;
-
       display.querySelectorAll('.cwm-recall-cell').forEach(cell => {
         cell.addEventListener('click', () => {
-          if (this._recallResponses.length >= this._settings.level) return;
           const idx = parseInt(cell.dataset.cell, 10);
           this._recallResponses.push(idx);
-          cell.classList.add('selected');
-          this._updateRecallSequence();
+          this._recallStep++;
+          this._renderCombinedRecallStep(display);
         });
       });
     } else {
       display.innerHTML = `
         <div style="display:flex;flex-direction:column;align-items:center;gap:16px">
-          <div class="cwm-recall-sequence" id="cwm-recall-seq">
-            ${Array(this._settings.level).fill(0).map(() => '<div class="cwm-recall-placeholder"></div>').join('')}
-          </div>
+          <div class="cwm-recall-sequence" id="cwm-recall-seq"></div>
           <div class="cwm-letter-bank" id="cwm-letter-bank">
             ${window.BT.CWM_LETTERS.map(l => `<button class="cwm-letter-btn" data-letter="${l}">${l}</button>`).join('')}
           </div>
           <div class="cwm-recall-controls">
             <button class="btn btn-secondary btn-sm" id="cwm-undo-btn">Undo</button>
-            <button class="btn btn-primary" id="cwm-submit-btn">Submit</button>
           </div>
         </div>
       `;
-
       display.querySelectorAll('.cwm-letter-btn').forEach(btn => {
         btn.addEventListener('click', () => {
-          if (this._recallResponses.length >= this._settings.level) return;
-          const letter = btn.dataset.letter;
-          this._recallResponses.push(letter);
-          btn.classList.add('selected');
-          this._updateRecallSequence();
+          this._recallResponses.push(btn.dataset.letter);
+          this._recallStep++;
+          this._renderCombinedRecallStep(display);
         });
       });
     }
 
+    this._updateRecallSequence();
     document.getElementById('cwm-undo-btn').addEventListener('click', () => this._undoRecall());
-    document.getElementById('cwm-submit-btn').addEventListener('click', () => this._submitRecall());
   },
 
   _updateRecallSequence() {
@@ -338,7 +434,9 @@ window.BT.CWMUI = {
     for (let i = 0; i < this._settings.level; i++) {
       if (i < this._recallResponses.length) {
         const val = this._recallResponses[i];
-        const label = this._settings.type === 'spatial' ? (val + 1) : val;
+        const isCombined = this._settings.type === 'combined';
+        const itemType = isCombined ? this._rounds[i].rememberType : this._settings.type;
+        const label = itemType === 'spatial' ? (val + 1) : val;
         seq.innerHTML += `<div class="cwm-recall-item">${label}</div>`;
       } else {
         seq.innerHTML += '<div class="cwm-recall-placeholder"></div>';
@@ -349,6 +447,12 @@ window.BT.CWMUI = {
   _undoRecall() {
     if (!this._recallResponses.length) return;
     const removed = this._recallResponses.pop();
+
+    if (this._settings.type === 'combined') {
+      this._recallStep = this._recallResponses.length;
+      this._renderCombinedRecallStep(document.getElementById('cwm-display-area'));
+      return;
+    }
 
     if (this._settings.type === 'spatial') {
       const cells = document.querySelectorAll('#cwm-recall-grid .cwm-recall-cell');
@@ -398,6 +502,7 @@ window.BT.CWMUI = {
         newLevel,
       };
       window.BT.Storage.addSession(record);
+      if (window.BT.Streaks) window.BT.Streaks.refresh();
 
       this._showResults(scores, newLevel);
 
@@ -405,12 +510,14 @@ window.BT.CWMUI = {
         this._settings.level = newLevel;
         window.BT.CWMSettings.save(this._settings);
       }
-      this._updateHeader();
+      this._syncSelects();
       window.BT.CWMSettings.renderTodaySets(document.querySelector('#cwm-today-sets'));
     }, 1500);
   },
 
   _showRecallFeedback() {
+    if (this._settings.type === 'combined') return;
+
     const expected = this._rounds.map(r => r.rememberItem);
 
     if (this._settings.type === 'spatial') {
@@ -534,20 +641,14 @@ window.BT.CWMUI = {
   },
 
   _updatePhaseLabel(text) {
-    document.getElementById('cwm-phase-label').innerHTML = text;
-  },
-
-  _updateProgress() {
-    const totalSteps = this._settings.level * (this._settings.decisionsPerRound + 1);
-    const currentStep = this._currentRound * (this._settings.decisionsPerRound + 1) + this._currentDecision + 1;
-    document.getElementById('cwm-progress-text').textContent = `${currentStep} / ${totalSteps}`;
-    document.getElementById('cwm-progress-fill').style.width = `${(currentStep / totalSteps) * 100}%`;
+    const el = document.getElementById('cwm-phase-label');
+    if (el) el.innerHTML = text;
   },
 
   _bindKeys() {
     document.addEventListener('keydown', (e) => {
       if (!document.getElementById('view-cwm').classList.contains('active')) return;
-      if (e.target.tagName === 'INPUT') return;
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
 
       const key = e.key.toUpperCase();
 
@@ -575,7 +676,7 @@ window.BT.CWMUI = {
           e.preventDefault();
           this._submitRecall();
         }
-        if (this._settings.type === 'verbal') {
+        if (this._settings.type === 'verbal' || this._settings.type === 'combined') {
           const letterBtn = document.querySelector(`.cwm-letter-btn[data-letter="${key}"]`);
           if (letterBtn) {
             e.preventDefault();
