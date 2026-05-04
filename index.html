@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BrainTrainer — N-Back & CWM</title>
+  <link rel="stylesheet" href="css/theme.css?v=9">
+  <link rel="stylesheet" href="css/components.css?v=9">
+  <link rel="stylesheet" href="css/nback.css?v=9">
+  <link rel="stylesheet" href="css/cwm.css?v=9">
+</head>
+<body>
+
+  <nav id="sidebar">
+    <div class="sidebar-logo">BrainTrainer</div>
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">Exercises</div>
+      <ul class="sidebar-nav">
+        <li data-view="nback" class="active">N-Back Training</li>
+        <li data-view="cwm">Complex Working Memory</li>
+      </ul>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">Progress</div>
+      <ul class="sidebar-nav">
+        <li data-view="stats">Statistics</li>
+      </ul>
+    </div>
+    <div class="sidebar-foot">
+      Press <span class="kbd">?</span> for shortcuts
+    </div>
+  </nav>
+
+  <div id="content">
+
+    <!-- N-Back -->
+    <section id="view-nback" class="view active">
+      <div class="exercise-header">
+        <h1>N-Back Training</h1>
+        <div class="header-controls">
+          <button class="header-link" id="nb-howto-btn">How to play</button>
+        </div>
+      </div>
+      <div class="exercise-body">
+        <div class="exercise-arena"></div>
+        <div class="exercise-panel"></div>
+      </div>
+    </section>
+
+    <!-- CWM -->
+    <section id="view-cwm" class="view">
+      <div class="exercise-header">
+        <h1>Complex Working Memory</h1>
+        <div class="header-controls">
+          <button class="header-link" id="cwm-howto-btn">How to play</button>
+        </div>
+      </div>
+      <div class="exercise-body">
+        <div class="exercise-arena"></div>
+        <div class="exercise-panel"></div>
+      </div>
+    </section>
+
+    <!-- Stats -->
+    <section id="view-stats" class="view">
+      <div class="exercise-header">
+        <h1>Statistics</h1>
+      </div>
+      <div class="exercise-body">
+        <div class="exercise-arena"></div>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- Modality Selection Modal -->
+  <div class="modal-overlay" id="modality-modal-overlay">
+    <div class="modal">
+      <div class="modal-header">Change N-Back Type</div>
+      <div class="modal-body"></div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary modal-cancel-btn">Cancel</button>
+        <button class="btn btn-primary modal-save-btn">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/storage.js?v=9"></script>
+  <script src="js/audio.js?v=9"></script>
+  <script src="js/cwm/cwm-words.js?v=9"></script>
+  <script src="js/nback/nback-engine.js?v=9"></script>
+  <script src="js/nback/nback-settings.js?v=9"></script>
+  <script src="js/nback/nback-ui.js?v=9"></script>
+  <script src="js/cwm/cwm-engine.js?v=9"></script>
+  <script src="js/cwm/cwm-settings.js?v=9"></script>
+  <script src="js/cwm/cwm-ui.js?v=9"></script>
+  <script src="js/stats.js?v=9"></script>
+  <script src="js/onboarding.js?v=9"></script>
+  <script src="js/app.js?v=9"></script>
+
+</body>
+</html>
