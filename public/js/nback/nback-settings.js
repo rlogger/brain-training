@@ -14,17 +14,18 @@ window.BT.NBackSettings = {
   renderPanel(container, settings, onChange) {
     container.innerHTML = `
       <div class="panel-section">
-        <div class="panel-section-title">This Set</div>
+        <div class="panel-section-title">This set<span class="ref">REG /set</span></div>
+        <div class="measure"><span class="tick-l"></span><span class="px">280px</span><span class="tick-r"></span></div>
         <div class="panel-row"><span class="label">N-back depth</span><span class="value" id="nb-info-level">${settings.n}</span></div>
         <div class="panel-row"><span class="label">Trials</span><span class="value" id="nb-info-trials">${settings.trialCount + settings.n}</span></div>
         <div class="panel-row"><span class="label">Total time</span><span class="value" id="nb-info-duration">${Math.round((settings.trialCount + settings.n) * (settings.trialTime + settings.isi) / 1000)} s</span></div>
       </div>
       <div class="panel-section">
-        <div class="panel-section-title">Today</div>
+        <div class="panel-section-title">Today<span class="ref">REG /day</span></div>
         <div id="nb-today-sets" class="today-sets"></div>
       </div>
       <details class="panel-section panel-disclosure">
-        <summary class="panel-section-title">Adjust</summary>
+        <summary class="panel-section-title">Adjust<span class="ref">REG /cfg</span></summary>
         <div class="setting-row">
           <label title="Speeds up or slows down the pace. Lower = harder.">Stimulus pace</label>
           <input type="number" class="input-field input-sm" id="nb-trial-time" value="${settings.trialTime}" min="500" max="10000" step="100">

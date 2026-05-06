@@ -20,18 +20,19 @@ window.BT.CWMSettings = {
 
     container.innerHTML = `
       <div class="panel-section">
-        <div class="panel-section-title">Next Set</div>
+        <div class="panel-section-title">Next set<span class="ref">REG /set</span></div>
+        <div class="measure"><span class="tick-l"></span><span class="px">280px</span><span class="tick-r"></span></div>
         <div class="panel-row"><span class="label">Level</span><span class="value">${settings.level}</span></div>
         <div class="panel-row"><span class="label">Number of trials</span><span class="value">${totalDecisions}</span></div>
         <div class="panel-row"><span class="label">Trial time</span><span class="value">${settings.trialTime / 1000}s</span></div>
         <div class="panel-row"><span class="label">Duration</span><span class="value">~${durStr}</span></div>
       </div>
       <div class="panel-section">
-        <div class="panel-section-title">Today</div>
+        <div class="panel-section-title">Today<span class="ref">REG /day</span></div>
         <div id="cwm-today-sets"></div>
       </div>
       <details class="panel-section panel-disclosure">
-        <summary class="panel-section-title">Adjust</summary>
+        <summary class="panel-section-title">Adjust<span class="ref">REG /cfg</span></summary>
         <div class="setting-row">
           <label title="How long each decision is shown.">Decision pace</label>
           <input type="number" class="input-field input-sm" id="cwm-trial-time" value="${settings.trialTime}" min="1000" max="10000" step="500">

@@ -5,6 +5,7 @@ window.BT.App = {
 
   init() {
     this._initTheme();
+    if (window.BT.Chrome) window.BT.Chrome.init();
     window.BT.Audio.init();
     window.BT.NBackUI.init();
     window.BT.CWMUI.init();

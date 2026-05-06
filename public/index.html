@@ -3,84 +3,109 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BrainTrainer — N-Back & CWM</title>
-  <link rel="stylesheet" href="css/theme.css?v=10">
-  <link rel="stylesheet" href="css/components.css?v=10">
-  <link rel="stylesheet" href="css/nback.css?v=10">
-  <link rel="stylesheet" href="css/cwm.css?v=10">
+  <title>BrainTrainer · TEARDOWN</title>
+  <link rel="stylesheet" href="css/theme.css?v=11">
+  <link rel="stylesheet" href="css/components.css?v=11">
+  <link rel="stylesheet" href="css/nback.css?v=11">
+  <link rel="stylesheet" href="css/cwm.css?v=11">
 </head>
 <body>
 
-  <nav id="sidebar">
-    <div class="sidebar-logo">BrainTrainer</div>
-    <div class="sidebar-section">
-      <div class="sidebar-section-title">Exercises</div>
-      <ul class="sidebar-nav">
-        <li data-view="nback" class="active">N-Back Training</li>
-        <li data-view="cwm">Complex Working Memory</li>
-      </ul>
-    </div>
-    <div class="sidebar-section">
-      <div class="sidebar-section-title">Progress</div>
-      <ul class="sidebar-nav">
-        <li data-view="stats">Statistics</li>
-      </ul>
-    </div>
-    <div class="sidebar-section" id="streak-section">
-      <div class="sidebar-section-title">Streak</div>
-      <div id="streak-display"></div>
-    </div>
-    <div class="sidebar-foot">
-      <button class="sidebar-toggle" id="dark-mode-toggle" aria-label="Toggle dark mode">
-        <span id="dark-mode-icon">Dark</span>
-      </button>
-      <div style="margin-top:.5rem">Press <span class="kbd">?</span> for shortcuts</div>
-    </div>
-  </nav>
+  <header class="topbar">
+    <div class="ident">BrainTrainer<em>·TEARDOWN</em></div>
+    <div class="build" id="bt-build">v0.5.0 · build 2026.05.05</div>
+    <div class="build" id="bt-seed">SEED 0x00000000</div>
+    <div class="build" id="bt-conn">LOCAL · IDB</div>
+    <div class="heartbeat" id="bt-heartbeat">RUNTIME 00:00:00</div>
+  </header>
 
-  <div id="content">
+  <div class="shell">
 
-    <!-- N-Back -->
-    <section id="view-nback" class="view active">
-      <div class="exercise-header">
-        <h1>N-Back Training</h1>
-        <div class="header-controls">
-          <button class="header-link" id="nb-howto-btn">How to play</button>
+    <nav id="sidebar">
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Exercises</div>
+        <ul class="sidebar-nav">
+          <li data-view="nback" data-ref="A1" class="active">N-Back</li>
+          <li data-view="cwm" data-ref="A2">Complex WM</li>
+        </ul>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Progress</div>
+        <ul class="sidebar-nav">
+          <li data-view="stats" data-ref="B1">Statistics</li>
+        </ul>
+      </div>
+      <div style="flex:1"></div>
+      <div class="sidebar-section" id="streak-section">
+        <div class="sidebar-section-title">Streak</div>
+        <div id="streak-display"></div>
+      </div>
+      <div class="sidebar-foot">
+        <button class="sidebar-toggle" id="dark-mode-toggle" aria-label="Toggle theme">
+          <span id="dark-mode-icon">Dark</span>
+        </button>
+        <div style="margin-top:8px">Press <span class="kbd">?</span> for shortcuts</div>
+      </div>
+    </nav>
+
+    <div id="content">
+
+      <section id="view-nback" class="view active">
+        <div class="exercise-header">
+          <h1>N-Back Training</h1>
+          <span style="color:var(--fg-faint)">/</span>
+          <span style="color:var(--fg-mute)">module A1</span>
+          <div class="header-controls">
+            <button class="header-link" id="nb-howto-btn">How to play</button>
+          </div>
         </div>
-      </div>
-      <div class="exercise-body">
-        <div class="exercise-arena"></div>
-        <div class="exercise-panel"></div>
-      </div>
-    </section>
-
-    <!-- CWM -->
-    <section id="view-cwm" class="view">
-      <div class="exercise-header">
-        <h1>Complex Working Memory</h1>
-        <div class="header-controls">
-          <button class="header-link" id="cwm-howto-btn">How to play</button>
+        <div class="exercise-body">
+          <div class="exercise-arena"></div>
+          <div class="exercise-panel"></div>
         </div>
-      </div>
-      <div class="exercise-body">
-        <div class="exercise-arena"></div>
-        <div class="exercise-panel"></div>
-      </div>
-    </section>
+      </section>
 
-    <!-- Stats -->
-    <section id="view-stats" class="view">
-      <div class="exercise-header">
-        <h1>Statistics</h1>
-      </div>
-      <div class="exercise-body">
-        <div class="exercise-arena"></div>
-      </div>
-    </section>
+      <section id="view-cwm" class="view">
+        <div class="exercise-header">
+          <h1>Complex Working Memory</h1>
+          <span style="color:var(--fg-faint)">/</span>
+          <span style="color:var(--fg-mute)">module A2</span>
+          <div class="header-controls">
+            <button class="header-link" id="cwm-howto-btn">How to play</button>
+          </div>
+        </div>
+        <div class="exercise-body">
+          <div class="exercise-arena"></div>
+          <div class="exercise-panel"></div>
+        </div>
+      </section>
 
+      <section id="view-stats" class="view">
+        <div class="exercise-header">
+          <h1>Statistics</h1>
+          <span style="color:var(--fg-faint)">/</span>
+          <span style="color:var(--fg-mute)">module B1</span>
+        </div>
+        <div class="exercise-body">
+          <div class="exercise-arena"></div>
+        </div>
+      </section>
+
+    </div>
   </div>
 
-  <!-- Modality Selection Modal -->
+  <footer class="statusbar">
+    <div><span class="v">PHASE</span><span id="status-phase" class="mono">IDLE</span></div>
+    <div><span class="v">TRIAL</span><span id="status-trial" class="mono">— / —</span></div>
+    <div><span class="v">TICK</span><span id="status-tick" class="mono">0000</span></div>
+    <div><span class="v">FRAME</span><span id="status-frame" class="mono">0.00 ms</span></div>
+    <div><span class="v">PAINT</span><span id="status-paint" class="mono">0.00 ms</span></div>
+    <div class="spacer"></div>
+    <div><span class="v">RNG</span><span id="status-rng" class="mono">0x00000000</span></div>
+    <div><span class="v">FOCUS</span><span id="status-focus" class="mono">—</span></div>
+    <div><span class="v">TZ</span><span id="status-tz" class="mono">UTC+00:00</span></div>
+  </footer>
+
   <div class="modal-overlay" id="modality-modal-overlay">
     <div class="modal">
       <div class="modal-header">Change N-Back Type</div>
@@ -92,19 +117,20 @@
     </div>
   </div>
 
-  <script src="js/storage.js?v=10"></script>
-  <script src="js/audio.js?v=10"></script>
-  <script src="js/cwm/cwm-words.js?v=10"></script>
-  <script src="js/nback/nback-engine.js?v=10"></script>
-  <script src="js/nback/nback-settings.js?v=10"></script>
-  <script src="js/nback/nback-ui.js?v=10"></script>
-  <script src="js/cwm/cwm-engine.js?v=10"></script>
-  <script src="js/cwm/cwm-settings.js?v=10"></script>
-  <script src="js/cwm/cwm-ui.js?v=10"></script>
-  <script src="js/streaks.js?v=10"></script>
-  <script src="js/stats.js?v=10"></script>
-  <script src="js/onboarding.js?v=10"></script>
-  <script src="js/app.js?v=10"></script>
+  <script src="js/storage.js?v=11"></script>
+  <script src="js/audio.js?v=11"></script>
+  <script src="js/cwm/cwm-words.js?v=11"></script>
+  <script src="js/nback/nback-engine.js?v=11"></script>
+  <script src="js/nback/nback-settings.js?v=11"></script>
+  <script src="js/nback/nback-ui.js?v=11"></script>
+  <script src="js/cwm/cwm-engine.js?v=11"></script>
+  <script src="js/cwm/cwm-settings.js?v=11"></script>
+  <script src="js/cwm/cwm-ui.js?v=11"></script>
+  <script src="js/streaks.js?v=11"></script>
+  <script src="js/stats.js?v=11"></script>
+  <script src="js/onboarding.js?v=11"></script>
+  <script src="js/chrome.js?v=11"></script>
+  <script src="js/app.js?v=11"></script>
 
 </body>
 </html>

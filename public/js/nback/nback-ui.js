@@ -33,6 +33,8 @@ function drawShape(cell, shape, color) {
   cell.appendChild(svg);
 }
 
+const COORDS = ['0,0','1,0','2,0','0,1','1,1','2,1','0,2','1,2','2,2'];
+
 window.BT.NBackUI = {
   _settings: null,
   _sequence: [],
@@ -41,6 +43,7 @@ window.BT.NBackUI = {
   _running: false,
   _timer: null,
   _phase: 'idle',
+  _cellStats: null,
 
   init() {
     this._settings = window.BT.NBackSettings.load();
@@ -52,39 +55,61 @@ window.BT.NBackUI = {
     const view = document.getElementById('view-nback');
     const arena = view.querySelector('.exercise-arena');
     const panel = view.querySelector('.exercise-panel');
+    const pad = (n, w = 2) => String(n).padStart(w, '0');
+
+    this._cellStats = Array.from({length: 9}, () => ({ shown: 0, hits: 0 }));
 
     arena.innerHTML = `
-      <div class="nback-hero">
-        <div class="nback-hero-eyebrow">N-back depth</div>
-        <div class="nback-hero-row">
-          <button class="nback-hero-step" id="nb-n-down" aria-label="Decrease level">−</button>
-          <div class="nback-hero-numeral" id="nb-hero-n">${this._settings.n}</div>
-          <button class="nback-hero-step" id="nb-n-up" aria-label="Increase level">+</button>
+      <div class="nback-stage">
+        <div class="nback-trial-info" id="nb-trial-counter" style="display:none">
+          <span class="label">TRIAL</span>
+          <span id="nb-trial-num">00 / 00</span>
+          <div class="progress-bar"><div id="nb-trial-bar-fill"></div></div>
         </div>
-        <button class="nback-hero-type" id="nb-hero-type">${getTypeName(this._settings.modalities)}</button>
-      </div>
-      <div class="nback-trial-counter" id="nb-trial-counter" style="display:none">
-        <span class="eyebrow">Trial</span>
-        <span class="nback-trial-num" id="nb-trial-num">0 / 0</span>
-      </div>
-      <div class="nback-grid-wrap">
-        <div class="nback-trial-bar">
-          <div class="nback-trial-bar-fill" id="nb-trial-bar-fill"></div>
+
+        <div class="nback-play-row">
+          <div class="nback-depth">
+            <span class="label">N-Back Depth</span>
+            <div class="nback-depth-control">
+              <button class="nback-depth-btn" id="nb-n-down" aria-label="Decrease level">−</button>
+              <div class="nback-depth-value" id="nb-hero-n">${this._settings.n}</div>
+              <button class="nback-depth-btn" id="nb-n-up" aria-label="Increase level">+</button>
+            </div>
+            <button class="header-link" id="nb-hero-type">${getTypeName(this._settings.modalities)}</button>
+          </div>
+
+          <div class="nback-grid-wrap">
+            <div class="grid-frame">
+              <span class="corner tl"></span><span class="corner tr"></span>
+              <span class="corner bl"></span><span class="corner br"></span>
+              <span class="axis-label x">X · POS</span>
+              <span class="axis-label y">Y · POS</span>
+            </div>
+            <div class="nback-grid" id="nb-grid">
+              ${Array(9).fill(0).map((_, i) => `
+                <div class="nback-cell" data-cell="${i}">
+                  <span class="pin">${COORDS[i]}</span>
+                  <span class="idx">${pad(i,2)}</span>
+                  <span class="hit">HIT <em>0/0</em></span>
+                  <span class="hz">−</span>
+                </div>
+              `).join('')}
+            </div>
+            <div class="nback-feedback" id="nb-feedback"></div>
+          </div>
+
+          <div class="nback-match-buttons" id="nb-match-btns"></div>
         </div>
-        <div class="nback-grid" id="nb-grid">
-          ${Array(9).fill(0).map((_, i) => `<div class="nback-cell" data-cell="${i}"></div>`).join('')}
+
+        <div class="nback-actions" id="nb-start-area">
+          <button class="btn btn-primary btn-lg" id="nb-start-btn">▸ BEGIN SET</button>
+          <span class="hint">Press <span class="kbd">Space</span> to start · <span class="kbd">?</span> for help</span>
         </div>
-        <div class="nback-feedback" id="nb-feedback"></div>
-      </div>
-      <div class="nback-start-area" id="nb-start-area">
-        <button class="btn btn-primary btn-lg" id="nb-start-btn">Begin set</button>
-        <div class="nback-start-hint">Press <span class="kbd">Space</span> to start · <span class="kbd">?</span> for help</div>
-      </div>
-      <div class="nback-controls" id="nb-controls" style="display:none">
-        <div class="nback-match-buttons" id="nb-match-btns"></div>
       </div>
       <div id="nb-results" style="display:none"></div>
     `;
+
+    this._renderMatchButtons();
 
     window.BT.NBackSettings.renderPanel(panel, this._settings, (s) => {
       this._settings = s;
@@ -172,14 +197,30 @@ window.BT.NBackUI = {
   _renderMatchButtons() {
     const container = document.getElementById('nb-match-btns');
     if (!container) return;
-    container.innerHTML = this._settings.modalities.map(m => `
-      <button class="match-btn" data-mod="${m}">
-        <span class="match-key">${MOD_KEYS[m]}</span> ${MOD_LABELS[m]}
-      </button>
-    `).join('');
+    container.innerHTML = `<span class="label" style="text-align:center;margin-bottom:6px">Response</span>` +
+      this._settings.modalities.map(m => `
+        <button class="nback-match-btn" data-mod="${m}" disabled>
+          <span>${MOD_LABELS[m]}</span>
+          <span class="key">${MOD_KEYS[m]}</span>
+        </button>
+      `).join('');
 
-    container.querySelectorAll('.match-btn').forEach(btn => {
+    container.querySelectorAll('.nback-match-btn').forEach(btn => {
       btn.addEventListener('click', () => this._handleMatch(btn.dataset.mod));
+    });
+  },
+
+  _refreshCellStats() {
+    const cells = document.querySelectorAll('.nback-cell');
+    const pad = (n, w = 2) => String(n).padStart(w, '0');
+    this._cellStats.forEach((s, i) => {
+      const hit = cells[i] && cells[i].querySelector('.hit em');
+      if (hit) hit.textContent = `${s.hits}/${s.shown}`;
+      const hz = cells[i] && cells[i].querySelector('.hz');
+      if (hz) {
+        const ratio = s.shown ? Math.round((s.hits / s.shown) * 100) : 0;
+        hz.textContent = s.shown ? `${pad(ratio,2)}%` : '−';
+      }
     });
   },
 
@@ -190,11 +231,17 @@ window.BT.NBackUI = {
     this._responses = {};
     this._currentIndex = -1;
     this._running = true;
+    this._cellStats = Array.from({length: 9}, () => ({ shown: 0, hits: 0 }));
+    this._refreshCellStats();
 
     document.getElementById('nb-start-area').style.display = 'none';
     document.getElementById('nb-results').style.display = 'none';
-    document.getElementById('nb-controls').style.display = 'flex';
     this._renderMatchButtons();
+
+    if (window.BT.Chrome) {
+      window.BT.Chrome.beginRun();
+      window.BT.Chrome.setPhase('STIM');
+    }
 
     await this._countdown();
     this._nextTrial();
@@ -239,18 +286,50 @@ window.BT.NBackUI = {
 
     this._phase = 'show';
     const stim = this._sequence[this._currentIndex];
+    const fireAt = performance.now();
     this._showStimulus(stim);
+    this._cellStats[stim.position].shown++;
+    this._refreshCellStats();
     this._updateProgress();
     this._updateTrialCounter();
     this._animateTrialBar(this._settings.trialTime);
 
     this._resetMatchButtons();
 
+    if (window.BT.Chrome) {
+      window.BT.Chrome.setPhase('STIM');
+      window.BT.Chrome.setTrial(this._currentIndex + 1, this._sequence.length);
+      window.BT.Chrome.tickRunning();
+      window.BT.Chrome.paintLatency(fireAt);
+    }
+
     this._timer = setTimeout(() => {
+      this._scoreTrial();
       this._clearStimulus();
       this._phase = 'isi';
+      if (window.BT.Chrome) window.BT.Chrome.setPhase('GAP');
       this._timer = setTimeout(() => this._nextTrial(), this._settings.isi);
     }, this._settings.trialTime);
+  },
+
+  _scoreTrial() {
+    const stim = this._sequence[this._currentIndex];
+    if (!stim || !stim.matches) return;
+    const responded = this._responses[this._currentIndex] || {};
+    if (stim.matches.position && responded.position) {
+      this._cellStats[stim.position].hits++;
+    }
+    document.querySelectorAll('.nback-match-btn').forEach(btn => {
+      const mod = btn.dataset.mod;
+      const truth = !!stim.matches[mod];
+      const said = !!responded[mod];
+      btn.classList.remove('armed');
+      if (said && truth)  btn.classList.add('hit');
+      if (said && !truth) btn.classList.add('miss');
+      if (!said && truth) btn.classList.add('miss');
+      btn.disabled = true;
+    });
+    this._refreshCellStats();
   },
 
   _updateTrialCounter() {
@@ -258,7 +337,8 @@ window.BT.NBackUI = {
     const num = document.getElementById('nb-trial-num');
     if (!counter || !num) return;
     counter.style.display = 'flex';
-    num.textContent = `${this._currentIndex + 1} / ${this._sequence.length}`;
+    const pad = (n) => String(n).padStart(2, '0');
+    num.textContent = `${pad(this._currentIndex + 1)} / ${pad(this._sequence.length)}`;
   },
 
   _animateTrialBar(durationMs) {
@@ -280,37 +360,32 @@ window.BT.NBackUI = {
 
   _showStimulus(stim) {
     const cells = document.querySelectorAll('.nback-cell');
-    cells.forEach(c => { c.classList.remove('active'); c.innerHTML = ''; c.style.background = ''; c.style.color = ''; });
+    cells.forEach(c => {
+      c.classList.remove('active');
+      const sh = c.querySelector('.cell-shape'); if (sh) sh.remove();
+      const gl = c.querySelector('.glyph');      if (gl) gl.remove();
+      const cn = c.querySelector('.cell-number'); if (cn) cn.remove();
+      c.style.background = '';
+    });
 
     const mods = this._settings.modalities;
     const activeCell = mods.includes('position') ? cells[stim.position] : null;
+    const target = activeCell || cells[4];
+    target.classList.add('active');
 
-    if (activeCell) {
-      activeCell.classList.add('active');
-      activeCell.style.color = 'var(--bg)';
-    }
-
-    if (mods.includes('color') && activeCell) {
-      activeCell.style.background = stim.color;
-      activeCell.style.color = '#fff';
+    if (mods.includes('color')) {
+      target.style.background = stim.color;
     }
 
     if (mods.includes('shape')) {
-      const target = activeCell || cells[4];
-      if (!activeCell) {
-        target.classList.add('active');
-        target.style.color = 'var(--bg)';
-      }
       drawShape(target, stim.shape);
     }
 
     if (mods.includes('number')) {
-      const target = activeCell || cells[4];
-      if (!activeCell && !mods.includes('shape')) target.classList.add('active');
-      const numEl = document.createElement('span');
-      numEl.className = 'cell-number';
-      numEl.textContent = stim.number;
-      target.appendChild(numEl);
+      const glyph = document.createElement('span');
+      glyph.className = 'glyph';
+      glyph.textContent = stim.number;
+      target.appendChild(glyph);
     }
 
     if (mods.includes('audio')) {
@@ -321,36 +396,29 @@ window.BT.NBackUI = {
   _clearStimulus() {
     document.querySelectorAll('.nback-cell').forEach(c => {
       c.classList.remove('active');
-      c.innerHTML = '';
+      const sh = c.querySelector('.cell-shape'); if (sh) sh.remove();
+      const gl = c.querySelector('.glyph');      if (gl) gl.remove();
+      const cn = c.querySelector('.cell-number'); if (cn) cn.remove();
       c.style.background = '';
-      c.style.color = '';
     });
   },
 
   _handleMatch(modality) {
-    if (!this._running || this._phase === 'idle') return;
+    if (!this._running || this._phase !== 'show') return;
     const idx = this._currentIndex;
     if (idx < this._settings.n) return;
     if (!this._responses[idx]) this._responses[idx] = {};
     if (this._responses[idx][modality]) return;
     this._responses[idx][modality] = true;
 
-    const btn = document.querySelector(`.match-btn[data-mod="${modality}"]`);
-    if (btn) {
-      btn.classList.add('pressed');
-      setTimeout(() => btn.classList.remove('pressed'), 200);
-
-      const isCorrect = this._sequence[idx].matches[modality];
-      setTimeout(() => {
-        btn.classList.add(isCorrect ? 'correct' : 'incorrect');
-        setTimeout(() => btn.classList.remove('correct', 'incorrect'), 400);
-      }, 200);
-    }
+    const btn = document.querySelector(`.nback-match-btn[data-mod="${modality}"]`);
+    if (btn) btn.classList.add('armed');
   },
 
   _resetMatchButtons() {
-    document.querySelectorAll('.match-btn').forEach(b => {
-      b.classList.remove('pressed', 'correct', 'incorrect');
+    document.querySelectorAll('.nback-match-btn').forEach(b => {
+      b.classList.remove('armed', 'hit', 'miss');
+      b.disabled = false;
     });
   },
 
@@ -364,6 +432,7 @@ window.BT.NBackUI = {
     clearTimeout(this._timer);
     this._clearStimulus();
     this._resetTrialBar();
+    if (window.BT.Chrome) window.BT.Chrome.endRun();
     const counter = document.getElementById('nb-trial-counter');
     if (counter) counter.style.display = 'none';
 
@@ -461,7 +530,6 @@ window.BT.NBackUI = {
       </div>
     `;
     container.style.display = 'flex';
-    document.getElementById('nb-controls').style.display = 'none';
 
     document.getElementById('nb-again-btn').addEventListener('click', () => {
       container.style.display = 'none';
@@ -512,9 +580,9 @@ window.BT.NBackUI = {
     clearTimeout(this._timer);
     this._clearStimulus();
     this._resetTrialBar();
+    if (window.BT.Chrome) window.BT.Chrome.endRun();
     const counter = document.getElementById('nb-trial-counter');
     if (counter) counter.style.display = 'none';
-    document.getElementById('nb-controls').style.display = 'none';
     document.getElementById('nb-start-area').style.display = 'flex';
     this._closePauseOverlay();
   },
