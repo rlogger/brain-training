@@ -566,7 +566,8 @@ window.BT.NBackUI = {
       }
 
       if (key === 'ESCAPE') {
-        this._togglePause();
+        e.preventDefault();
+        if (this._running) this._abort();
       }
     });
   },
